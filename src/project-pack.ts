@@ -132,10 +132,17 @@ export function projectPack(
     };
   });
 
+  // Guard: a pack with no visitable coordinates would leave the bounds at their
+  // ±Infinity seed values; fall back to a degenerate origin box so consumers
+  // always receive finite numbers (the contract promises finite bounds).
+  const bounds: Bounds = Number.isFinite(minX)
+    ? [minX, minY, maxX, maxY]
+    : [0, 0, 0, 0];
+
   return {
     ref: target.ref,
     features,
     attribution: target.attribution,
-    bounds: [minX, minY, maxX, maxY],
+    bounds,
   };
 }
