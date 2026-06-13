@@ -1,0 +1,57 @@
+{
+  "name": "@hwcharlton/geo-canvas",
+  "version": "0.1.0",
+  "description": "Browser-facing deck.gl layer builders for the @hwcharlton geo-data ecosystem: pre-projects decoded TopoJSON area packs to EPSG:6677 metres and builds GeoJsonLayer/PathLayer layers over an OrthographicView with injected layer ctors (ADR-005/008/011/017).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "vite build",
+    "format": "prettier . --write",
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "prepare": "simple-git-hooks",
+    "prepublishOnly": "pnpm run build"
+  },
+  "author": "Henry Charlton",
+  "license": "ISC",
+  "dependencies": {
+    "@hwcharlton/geo-model": "^0.1.0",
+    "@hwcharlton/geo-client": "file:../geo-client"
+  },
+  "devDependencies": {
+    "@deck.gl/core": "^9.0.0",
+    "@deck.gl/layers": "^9.0.0",
+    "@hwcharlton/git-hooks": "^0.0.1",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^20.11.16",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "simple-git-hooks": "^2.9.0",
+    "topojson-client": "^3.1.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9",
+    "typescript-eslint": "^8.5.0",
+    "vite": "^8.0.14",
+    "vite-plugin-dts": "^4.5.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx hwc-git-hooks pre-commit"
+  },
+  "files": [
+    "dist"
+  ],
+  "packageManager": "pnpm@10.33.2",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "simple-git-hooks"
+    ]
+  }
+}
