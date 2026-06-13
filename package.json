@@ -22,7 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "@hwcharlton/geo-model": "^0.1.0",
-    "@hwcharlton/geo-client": "file:../geo-client"
+    "@hwcharlton/geo-client": "^0.1.0"
   },
   "devDependencies": {
     "@deck.gl/core": "^9.0.0",
