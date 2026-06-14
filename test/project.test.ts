@@ -27,7 +27,11 @@ import { makeProjector, projectPack, fitBounds } from "../src/index.js";
 const ADMIN_DIR =
   "/home/ubuntu/dev/personal/geo-data-staging/packs/shibuya/admin";
 
-const SHIBUYA_ADMIN: PackRef = { ward: "shibuya", layer: "admin", detail: "high" };
+const SHIBUYA_ADMIN: PackRef = {
+  ward: "shibuya",
+  layer: "admin",
+  detail: "high",
+};
 
 /** Decode the real Shibuya admin pack from disk into a DecodedPack. */
 async function decodeShibuyaAdmin(): Promise<DecodedPack> {

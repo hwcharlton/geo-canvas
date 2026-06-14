@@ -128,7 +128,12 @@ test("buildLayers wires a custom admin style and pickable:false", async () => {
 
   buildLayers(
     fakeCtors(sink),
-    { admin, style: { admin: { fillColor: fill, lineColor: line, lineWidthMeters: 9 } } },
+    {
+      admin,
+      style: {
+        admin: { fillColor: fill, lineColor: line, lineWidthMeters: 9 },
+      },
+    },
     { pickable: false },
   );
 
@@ -184,7 +189,10 @@ test("buildLayers draws water, then road, then admin in order", async () => {
   const admin = await projectedAdmin();
   const road = await projectedRoad();
   // Reuse the admin pack as a stand-in 'water' polygon pack (same shape).
-  const water: ProjectedPack = { ...admin, ref: { ...admin.ref, layer: "water" } };
+  const water: ProjectedPack = {
+    ...admin,
+    ref: { ...admin.ref, layer: "water" },
+  };
   const sink: Recorded[] = [];
 
   const layers = buildLayers(fakeCtors(sink), { admin, road, water });

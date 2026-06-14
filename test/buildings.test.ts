@@ -276,7 +276,9 @@ test("buildLayers throws a clear error when no SolidPolygonLayer ctor is injecte
   const building = projectedOrbitBuildings();
   // Ctors WITHOUT a SolidPolygonLayer (the 2D-only host case).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ctors = { ctors: { GeoJsonLayer: class {}, PathLayer: class {} } as any };
+  const ctors = {
+    ctors: { GeoJsonLayer: class {}, PathLayer: class {} } as any,
+  };
   assert.throws(
     () => buildLayers(ctors, { building }),
     /SolidPolygonLayer/,

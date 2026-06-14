@@ -139,7 +139,11 @@ const DEFAULT_ROAD_COLOR: RGBA = [120, 120, 130, 200];
  * compose it; override via {@link BuildingLayerStyle.color}.
  */
 export function heightColor(elevationMeters: number): RGBA {
-  const t = Math.max(0, Math.min(1, elevationMeters / 120));
+  // Guard non-finite input (NaN/±Infinity) → treat as 0 so every channel stays
+  // a valid 0–255 byte (the built-in layer only ever passes finite heights, but
+  // this is exported for hosts to call directly).
+  const m = Number.isFinite(elevationMeters) ? elevationMeters : 0;
+  const t = Math.max(0, Math.min(1, m / 120));
   const r = Math.round(60 + t * 180);
   const g = Math.round(170 - t * 90);
   const b = Math.round(150 - t * 60);
@@ -254,7 +258,12 @@ export function flattenBuildings(pack: ProjectedPack): ProjectedBuilding[] {
     const elevation = featureHeight(f);
     const baseId = f.id ?? "building";
     if (g.type === "Polygon") {
-      out.push({ id: baseId, polygon: g.coordinates as Position[][], elevation, src: f });
+      out.push({
+        id: baseId,
+        polygon: g.coordinates as Position[][],
+        elevation,
+        src: f,
+      });
     } else if (g.type === "MultiPolygon") {
       const polys = g.coordinates as Position[][][];
       polys.forEach((poly, j) => {

@@ -118,20 +118,22 @@ export function projectPack(
     }
   };
 
-  const features: ProjectedFeature[] = target.collection.features.map((f, i) => {
-    const geometry = projectGeometry(f.geometry, deps.projector);
-    if (geometry && "coordinates" in geometry) visit(geometry.coordinates);
-    else if (geometry && geometry.type === "GeometryCollection") {
-      for (const g of geometry.geometries)
-        if ("coordinates" in g) visit(g.coordinates);
-    }
-    return {
-      ...f,
-      // Stable synthetic id for picking when source packs lack feature ids.
-      id: f.id ?? `${prefix}:${i}`,
-      geometry,
-    };
-  });
+  const features: ProjectedFeature[] = target.collection.features.map(
+    (f, i) => {
+      const geometry = projectGeometry(f.geometry, deps.projector);
+      if (geometry && "coordinates" in geometry) visit(geometry.coordinates);
+      else if (geometry && geometry.type === "GeometryCollection") {
+        for (const g of geometry.geometries)
+          if ("coordinates" in g) visit(g.coordinates);
+      }
+      return {
+        ...f,
+        // Stable synthetic id for picking when source packs lack feature ids.
+        id: f.id ?? `${prefix}:${i}`,
+        geometry,
+      };
+    },
+  );
 
   // Guard: a pack with no visitable coordinates would leave the bounds at their
   // ±Infinity seed values; fall back to a degenerate origin box so consumers
