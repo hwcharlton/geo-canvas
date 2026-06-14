@@ -39,6 +39,8 @@ export {
 export {
   buildLayers,
   type LayerStyle,
+  type PolygonLayerStyle,
+  type RoadLayerStyle,
   type LayerCtors,
   type RGBA,
   type BuildLayersTarget,

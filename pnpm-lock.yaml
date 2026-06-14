@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@hwcharlton/geo-client':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@hwcharlton/geo-model':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
     devDependencies:
       '@deck.gl/core':
         specifier: ^9.0.0
@@ -309,11 +309,11 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@hwcharlton/geo-client@0.1.0':
-    resolution: {integrity: sha512-qBNEbYeJTBzAVK4AjU2tT5n6JLCQNY+ZR1QsYLmIpFxfAAPQQFRvFkaiLT8F5r0UyasmbYETi5HXz8It35kpYw==}
+  '@hwcharlton/geo-client@0.2.0':
+    resolution: {integrity: sha512-9vvKK5WMrKB8mGmNBTFa72+op6uBH974tCNQeM/YS32yqfIlADXnSOzTssVUBkeCi8ugrS52R51e5niIKHPEsQ==}
 
-  '@hwcharlton/geo-model@0.1.0':
-    resolution: {integrity: sha512-E+UGvpfJpBEIIBeGi0n2vMk6jD2ac+pxMTXVygJ/LHifXXzdST5z8BzWg5pghpoayspQ1q0LsfXRj9z36Di+oA==}
+  '@hwcharlton/geo-model@0.2.0':
+    resolution: {integrity: sha512-J63B+4MMhjxX+k3g5MXDxvirh0wrfPGNHkrjZ6MoxXg9OiPVmHvFgbqCxwla0gRghObrIz+bvzVUpI8npiPTaQ==}
 
   '@hwcharlton/git-hooks@0.0.1':
     resolution: {integrity: sha512-MziaqQZ+gEv1XMmH6fpCqbXA9h78Cu9IM+rs9tmeTanqNNd/thkhx7DN1w3PSAJgnu/qfYS15XMZOIcPicHtaA==}
@@ -1690,12 +1690,12 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@hwcharlton/geo-client@0.1.0':
+  '@hwcharlton/geo-client@0.2.0':
     dependencies:
-      '@hwcharlton/geo-model': 0.1.0
+      '@hwcharlton/geo-model': 0.2.0
       topojson-client: 3.1.0
 
-  '@hwcharlton/geo-model@0.1.0': {}
+  '@hwcharlton/geo-model@0.2.0': {}
 
   '@hwcharlton/git-hooks@0.0.1(simple-git-hooks@2.13.1)':
     dependencies:
