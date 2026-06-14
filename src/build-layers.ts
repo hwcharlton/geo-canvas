@@ -11,18 +11,21 @@
  *
  * Layer mapping (ADR-005/008, stylized, no labels):
  *   - polygon packs (admin, water) → one `GeoJsonLayer` each, filled + stroked;
- *   - line packs (road) → one `PathLayer`, (Multi)LineStrings flattened to paths.
+ *   - line packs (road) → one `PathLayer`, (Multi)LineStrings flattened to paths;
+ *   - building packs (3D, Phase 2) → one extruded `SolidPolygonLayer`, polygons
+ *     flattened one-record-per-polygon, extruded by each feature's numeric
+ *     `height` property (metres) over an `OrbitView` (`orbitAxis:"Z"`).
  *
  * The target/style maps are keyed by geo-model's {@link LayerKind} so that
  * adding a renderable layer kind is a *data* change (a new entry in the
- * per-kind treatment table below), not a change to the public API shape. Only
- * the kinds baked today are renderable — admin, water, road. The remaining
+ * per-kind treatment table below), not a change to the public API shape. The
+ * kinds renderable today are admin, water, road, and `building`. The remaining
  * `LayerKind` members (coastline, rail, landuse) are typed-but-not-renderable
  * and throw a clear error if passed; they get baked + wired in Phase 2/3 when
  * those packs land.
  *
  * DI convention: `(deps, target, options?)`.
- *   deps    — `{ ctors: { GeoJsonLayer, PathLayer } }`.
+ *   deps    — `{ ctors: { GeoJsonLayer, PathLayer, SolidPolygonLayer? } }`.
  *   target  — `Partial<Record<LayerKind, ProjectedPack>>` + optional `style`.
  *   options — `{ pickable?, onClick?, onHover? }`.
  */
@@ -48,6 +51,20 @@ export interface RoadLayerStyle {
 }
 
 /**
+ * Style knobs for the extruded `building` kind (3D, Phase 2). The colour ramps
+ * by height for readable massing; `elevationScale` is a draw-time vertical
+ * exaggeration (`1` = true metres); `wireframe` overlays edges.
+ */
+export interface BuildingLayerStyle {
+  /** Elevation (metres) → RGBA; defaults to {@link heightColor} (a height ramp). */
+  color?: (elevationMeters: number) => RGBA;
+  /** Draw-time vertical exaggeration (default `1` = true metres). */
+  elevationScale?: number;
+  /** Overlay polygon edges (default `false`). */
+  wireframe?: boolean;
+}
+
+/**
  * Maps each {@link LayerKind} to the shape of style knobs it accepts. Polygon
  * kinds take {@link PolygonLayerStyle}; `road` takes {@link RoadLayerStyle}.
  * Kinds not yet renderable still carry a style slot so the map stays uniform.
@@ -59,6 +76,7 @@ interface LayerStyleByKind {
   coastline: PolygonLayerStyle;
   rail: RoadLayerStyle;
   landuse: PolygonLayerStyle;
+  building: BuildingLayerStyle;
 }
 
 /**
@@ -74,12 +92,19 @@ export type LayerStyle = Partial<LayerStyleByKind>;
  * The deck.gl layer constructors the host injects. Typed as `any` because the
  * concrete deck.gl classes are a host concern and are never imported here; the
  * tests substitute fakes with the same call shape.
+ *
+ * `SolidPolygonLayer` is **optional**: only the 3D `building` path needs it, so
+ * a host that renders only the 2D kinds (admin/water/road) need not supply it.
+ * Building a `building` layer without it throws a clear error.
  */
 export interface LayerCtors {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   GeoJsonLayer: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   PathLayer: any;
+  /** Required only for the extruded `building` kind (3D, Phase 2). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  SolidPolygonLayer?: any;
 }
 
 /**
@@ -106,6 +131,20 @@ const DEFAULT_ADMIN_LINE: RGBA = [38, 139, 210, 235];
 const DEFAULT_WATER_FILL: RGBA = [40, 110, 160, 90];
 const DEFAULT_WATER_LINE: RGBA = [40, 110, 160, 180];
 const DEFAULT_ROAD_COLOR: RGBA = [120, 120, 130, 200];
+
+/**
+ * Default building height ramp (metres → RGBA): low buildings read teal, tall
+ * ones warm, so a top-down or pitched view shows massing by colour. Ported from
+ * the render-buildings spike (clamped at 120 m). Exported so hosts can reuse or
+ * compose it; override via {@link BuildingLayerStyle.color}.
+ */
+export function heightColor(elevationMeters: number): RGBA {
+  const t = Math.max(0, Math.min(1, elevationMeters / 120));
+  const r = Math.round(60 + t * 180);
+  const g = Math.round(170 - t * 90);
+  const b = Math.round(150 - t * 60);
+  return [r, g, b, 230];
+}
 
 /** Flatten a polygon pack into a GeoJsonLayer (filled + stroked). */
 function polygonLayer(
@@ -175,12 +214,109 @@ function roadLayer(
 }
 
 /**
+ * A building flattened for the extruded `SolidPolygonLayer`: one record per
+ * polygon (`SolidPolygonLayer` takes one ring-set per datum, so the record
+ * COUNT == the layer's draw count), the projected outer ring (+ holes) in metre
+ * space, the numeric height (metres) read off the source feature, and a
+ * back-reference to the source feature for picking payloads.
+ */
+export interface ProjectedBuilding {
+  /** Stable id for picking; MultiPolygon parts are suffixed `#<j>`. */
+  id: string | number;
+  /** Outer ring (+ optional holes) in projected metres: `Position[][]`. */
+  polygon: Position[][];
+  /** Extrusion height in metres (from the feature's `height` property). */
+  elevation: number;
+  /** The source projected feature (its `properties` carry the OSM tags). */
+  src: ProjectedFeature;
+}
+
+/** Default extrusion height (metres) for a building feature missing `height`. */
+const DEFAULT_BUILDING_HEIGHT = 9;
+
+/** Read a feature's numeric `height` (metres), coercing strings; fallback 9 m. */
+function featureHeight(f: ProjectedFeature): number {
+  const h = f.properties.height;
+  const v = typeof h === "number" ? h : Number.parseFloat(String(h));
+  return Number.isFinite(v) && v > 0 ? v : DEFAULT_BUILDING_HEIGHT;
+}
+
+/**
+ * Flatten a projected building pack into one {@link ProjectedBuilding} per
+ * polygon (Polygon → 1; MultiPolygon → 1 per polygon, ids suffixed `#<j>` so
+ * picking stays unique), each carrying its height (metres) from the feature's
+ * `height` property.
+ */
+export function flattenBuildings(pack: ProjectedPack): ProjectedBuilding[] {
+  const out: ProjectedBuilding[] = [];
+  for (const f of pack.features) {
+    const g = f.geometry;
+    const elevation = featureHeight(f);
+    const baseId = f.id ?? "building";
+    if (g.type === "Polygon") {
+      out.push({ id: baseId, polygon: g.coordinates as Position[][], elevation, src: f });
+    } else if (g.type === "MultiPolygon") {
+      const polys = g.coordinates as Position[][][];
+      polys.forEach((poly, j) => {
+        out.push({
+          id: polys.length > 1 ? `${baseId}#${j}` : baseId,
+          polygon: poly,
+          elevation,
+          src: f,
+        });
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Flatten a building pack into an extruded `SolidPolygonLayer` (3D, Phase 2).
+ *
+ * Accessor shape (ported from the render-buildings spike):
+ *   - `getPolygon: (d) => d.polygon`      // `Position[][]` outer+holes, metres
+ *   - `getElevation: (d) => d.elevation`  // metres (the feature's `height`)
+ *   - `getFillColor: (d) => color(d.elevation)`  // height ramp for massing
+ *   - `extruded: true`, `filled: true`, plus a `material` for visible shading.
+ *
+ * Renders over an `OrbitView` (`orbitAxis:"Z"`) where Z is up; the building pack
+ * must be projected with a `negateY:false` {@link Projector} (north stays +Y).
+ */
+function buildingLayer(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  SolidPolygonLayer: any,
+  id: string,
+  pack: ProjectedPack,
+  style: BuildingLayerStyle,
+  options: BuildLayersOptions,
+  pickable: boolean,
+): unknown {
+  const colorFor = style.color ?? heightColor;
+  return new SolidPolygonLayer({
+    id,
+    data: flattenBuildings(pack),
+    pickable,
+    extruded: true,
+    filled: true,
+    wireframe: style.wireframe ?? false,
+    elevationScale: style.elevationScale ?? 1,
+    getPolygon: (d: ProjectedBuilding) => d.polygon,
+    getElevation: (d: ProjectedBuilding) => d.elevation,
+    getFillColor: (d: ProjectedBuilding) => colorFor(d.elevation),
+    material: { ambient: 0.6, diffuse: 0.6, shininess: 32 },
+    onClick: options.onClick,
+    onHover: options.onHover,
+  });
+}
+
+/**
  * Builds the deck.gl layer for a single present {@link LayerKind}. The render
  * treatment per kind lives here so the taxonomy is data-driven: admin/water →
  * polygon GeoJsonLayer (their distinct default palettes); road → line PathLayer
- * with line flattening. The remaining kinds (coastline, rail, landuse) are
- * typed by geo-model but not baked yet — they throw a clear error rather than
- * guess a treatment, and get wired in Phase 2/3 when those packs land.
+ * with line flattening; building → extruded `SolidPolygonLayer` (3D). The
+ * remaining kinds (coastline, rail, landuse) are typed by geo-model but not
+ * baked yet — they throw a clear error rather than guess a treatment, and get
+ * wired in Phase 2/3 when those packs land.
  */
 function buildLayerForKind(
   kind: LayerKind,
@@ -222,6 +358,21 @@ function buildLayerForKind(
         options,
         pickable,
       );
+    case "building": {
+      if (!ctors.SolidPolygonLayer)
+        throw new Error(
+          `geo-canvas: the "building" layer kind needs a SolidPolygonLayer ` +
+            `ctor — inject one via deps.ctors.SolidPolygonLayer`,
+        );
+      return buildingLayer(
+        ctors.SolidPolygonLayer,
+        "building",
+        pack,
+        style.building ?? {},
+        options,
+        pickable,
+      );
+    }
     default:
       throw new Error(
         `geo-canvas: layer kind "${kind}" is typed but not yet renderable — ` +
@@ -231,16 +382,22 @@ function buildLayerForKind(
 }
 
 /**
- * Draw order (bottom → top): water fills, then roads, then admin outline — so
- * the ward boundary reads on top of everything. Iterating this fixed order
- * (rather than the map's key-insertion order) keeps the emitted layer sequence
- * stable. Kinds not listed here are not yet renderable; passing one throws via
+ * Draw order (bottom → top): water fills, then roads, then admin outline, then
+ * extruded buildings on top — so the ward boundary reads over the 2D ground and
+ * the 3D massing sits above it all. Iterating this fixed order (rather than the
+ * map's key-insertion order) keeps the emitted layer sequence stable. Kinds not
+ * listed here are not yet renderable; passing one throws via
  * {@link buildLayerForKind}.
  *
  * When coastline/rail/landuse land (Phase 2/3), insert them at the right
  * z-position here and add their treatment to {@link buildLayerForKind}.
  */
-const RENDER_ORDER: readonly LayerKind[] = ["water", "road", "admin"];
+const RENDER_ORDER: readonly LayerKind[] = [
+  "water",
+  "road",
+  "admin",
+  "building",
+];
 
 /**
  * Turn pre-projected packs + a style into an ordered deck.gl layer array.

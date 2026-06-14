@@ -12,8 +12,8 @@ importers:
         specifier: ^0.2.0
         version: 0.2.0
       '@hwcharlton/geo-model':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       '@deck.gl/core':
         specifier: ^9.0.0
@@ -314,6 +314,9 @@ packages:
 
   '@hwcharlton/geo-model@0.2.0':
     resolution: {integrity: sha512-J63B+4MMhjxX+k3g5MXDxvirh0wrfPGNHkrjZ6MoxXg9OiPVmHvFgbqCxwla0gRghObrIz+bvzVUpI8npiPTaQ==}
+
+  '@hwcharlton/geo-model@0.3.0':
+    resolution: {integrity: sha512-YzYOfCX4flPSwoIC39DHMsLZJKBfpcM+CciLncaspfTTyuvssaw0FqLI6FJKeXuKl6G5UCPz1VPHQpj6XaXImA==}
 
   '@hwcharlton/git-hooks@0.0.1':
     resolution: {integrity: sha512-MziaqQZ+gEv1XMmH6fpCqbXA9h78Cu9IM+rs9tmeTanqNNd/thkhx7DN1w3PSAJgnu/qfYS15XMZOIcPicHtaA==}
@@ -1696,6 +1699,8 @@ snapshots:
       topojson-client: 3.1.0
 
   '@hwcharlton/geo-model@0.2.0': {}
+
+  '@hwcharlton/geo-model@0.3.0': {}
 
   '@hwcharlton/git-hooks@0.0.1(simple-git-hooks@2.13.1)':
     dependencies:
