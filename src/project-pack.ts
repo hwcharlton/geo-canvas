@@ -16,7 +16,8 @@
  * DI convention: `(deps, target, options?)`.
  *   deps    — the injected {@link Projector}.
  *   target  — the {@link DecodedPack} to project.
- *   options — reserved (none today).
+ *   options — optional knobs ({@link ProjectPackOptions}); `idPrefix` overrides
+ *             the synthetic-id prefix.
  */
 import type { Feature, Geometry, Position } from "geojson";
 import type { DecodedPack } from "@hwcharlton/geo-client";
@@ -40,7 +41,7 @@ export interface ProjectedPack {
   bounds: Bounds;
 }
 
-/** Optional knobs for {@link projectPack} (reserved). */
+/** Optional knobs for {@link projectPack} (currently the `idPrefix` override). */
 export interface ProjectPackOptions {
   /** Override the synthetic-id prefix (defaults to the pack's `ref.layer`). */
   idPrefix?: string;

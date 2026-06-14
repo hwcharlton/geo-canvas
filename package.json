@@ -24,6 +24,18 @@
     "@hwcharlton/geo-model": "^0.1.0",
     "@hwcharlton/geo-client": "^0.1.0"
   },
+  "peerDependencies": {
+    "@deck.gl/core": ">=9",
+    "@deck.gl/layers": ">=9"
+  },
+  "peerDependenciesMeta": {
+    "@deck.gl/core": {
+      "optional": true
+    },
+    "@deck.gl/layers": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@deck.gl/core": "^9.0.0",
     "@deck.gl/layers": "^9.0.0",
