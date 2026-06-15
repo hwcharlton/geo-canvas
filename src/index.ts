@@ -36,6 +36,18 @@
  *   - {@link fitBounds} — `(bounds, target)` → `OrthographicView` `{ target, zoom }`.
  *   - {@link fitBoundsOrbit} — `(bounds, target, options?)` → `OrbitView` state.
  *   - {@link buildAttribution} — `(packs)` → de-duplicated attribution string.
+ *
+ * Stage-2 PLATEAU render-budget tier (ADR-021, the authoritative building
+ * layer): per-mesh viewport culling + LOD/poly-budget + worker-safe decode +
+ * an injected-ctor deck.gl building layer factory (see `./mesh-tiles`).
+ *
+ *   - {@link meshesInView} — `(deps, index, {viewBoundsLngLat})` → in-view meshes.
+ *   - {@link pickLod} — `(deps, inViewMeshes, options?)` → per-mesh LOD + budget.
+ *   - {@link decodeAndProjectMesh} — `(deps, packJson, options?)` → projected
+ *     building records (worker-safe; no DOM/deck).
+ *   - {@link buildPlateauBuildingTileLayer} — `(deps, target, options?)` → one
+ *     extruded `SolidPolygonLayer` per visible mesh (explicit mesh-culling
+ *     composite; `getTileData` injected).
  */
 export {
   makeProjector,
@@ -75,3 +87,25 @@ export {
   type OrbitViewState,
   type OrbitFitOptions,
 } from "./view.js";
+
+export {
+  meshesInView,
+  pickLod,
+  decodeAndProjectMesh,
+  buildPlateauBuildingTileLayer,
+  type LngLatBBox,
+  type MeshEntry,
+  type PlateauMeshIndex,
+  type MeshLod,
+  type MeshDraw,
+  type ViewSpanInfo,
+  type PickLodOptions,
+  type PickLodResult,
+  type DecodeMeshDeps,
+  type MeshPackJson,
+  type DecodeMeshOptions,
+  type ProjectedMesh,
+  type PlateauTileLayerCtors,
+  type PlateauTileLayerTarget,
+  type PlateauTileLayerOptions,
+} from "./mesh-tiles.js";

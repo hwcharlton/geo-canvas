@@ -1,6 +1,6 @@
 {
   "name": "@hwcharlton/geo-canvas",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Browser-facing deck.gl layer builders for the @hwcharlton geo-data ecosystem: pre-projects decoded TopoJSON area packs to EPSG:6677 metres and builds GeoJsonLayer/PathLayer layers over an OrthographicView with injected layer ctors (ADR-005/008/011/017).",
   "type": "module",
   "exports": {
