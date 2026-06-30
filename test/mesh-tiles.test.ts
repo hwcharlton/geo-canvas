@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { feature as topoFeature } from "topojson-client";
 import {
   meshesInView,
+  sortMeshesNearestFirst,
   pickLod,
   decodeAndProjectMesh,
   buildPlateauBuildingTileLayer,
@@ -70,7 +71,9 @@ function buildTopology(mesh: string, feats: GeojsonlFeature[]): any {
   return {
     type: "Topology",
     arcs,
-    objects: { [`${mesh}-building`]: { type: "GeometryCollection", geometries } },
+    objects: {
+      [`${mesh}-building`]: { type: "GeometryCollection", geometries },
+    },
   };
 }
 
@@ -93,9 +96,24 @@ function samplePackJson(mesh: string, n: number): MeshPackJson {
 const INDEX: PlateauMeshIndex = {
   tier: "plateau-building",
   meshes: [
-    { mesh: "A", bbox: [139.0, 35.0, 139.1, 35.1], pack: "plateau/A/building/flat.topo.json.br", count: 30_000 },
-    { mesh: "B", bbox: [139.1, 35.0, 139.2, 35.1], pack: "plateau/B/building/flat.topo.json.br", count: 50_000 },
-    { mesh: "C", bbox: [139.2, 35.0, 139.3, 35.1], pack: "plateau/C/building/flat.topo.json.br", count: 40_000 },
+    {
+      mesh: "A",
+      bbox: [139.0, 35.0, 139.1, 35.1],
+      pack: "plateau/A/building/flat.topo.json.br",
+      count: 30_000,
+    },
+    {
+      mesh: "B",
+      bbox: [139.1, 35.0, 139.2, 35.1],
+      pack: "plateau/B/building/flat.topo.json.br",
+      count: 50_000,
+    },
+    {
+      mesh: "C",
+      bbox: [139.2, 35.0, 139.3, 35.1],
+      pack: "plateau/C/building/flat.topo.json.br",
+      count: 40_000,
+    },
   ],
 };
 
@@ -150,6 +168,33 @@ test("meshesInView keeps an edge-touching mesh (inclusive AABB overlap)", () => 
   assert.deepEqual(
     got.map((m) => m.mesh),
     ["A", "B"],
+  );
+});
+
+test("sortMeshesNearestFirst orders visible meshes by distance to view centre", () => {
+  const view: LngLatBBox = [139.09, 35.0, 139.11, 35.1];
+  const got = sortMeshesNearestFirst({}, INDEX.meshes, {
+    viewBoundsLngLat: view,
+  });
+
+  assert.deepEqual(
+    got.map((m) => m.mesh),
+    ["B", "A", "C"],
+  );
+});
+
+test("sortMeshesNearestFirst is stable for equal-distance meshes", () => {
+  const meshes: MeshEntry[] = [
+    { mesh: "W", bbox: [-2, 0, -1, 1], pack: "p", count: 1 },
+    { mesh: "E", bbox: [1, 0, 2, 1], pack: "p", count: 1 },
+  ];
+  const got = sortMeshesNearestFirst({}, meshes, {
+    viewBoundsLngLat: [-0.5, 0, 0.5, 1],
+  });
+
+  assert.deepEqual(
+    got.map((m) => m.mesh),
+    ["W", "E"],
   );
 });
 
@@ -224,7 +269,10 @@ test("decodeAndProjectMesh decodes a real PLATEAU mesh sample, projects to metre
   assert.equal(projected.count, n);
   assert.equal(projected.buildings.length, n);
   assert.equal(projected.mesh, "53392547");
-  assert.equal(projected.attribution, "出典：国土交通省 PLATEAU（加工して作成）");
+  assert.equal(
+    projected.attribution,
+    "出典：国土交通省 PLATEAU（加工して作成）",
+  );
 
   // Heights survive the round-trip: compare to the raw sample's measuredHeight.
   const raw = readSample("53392547", n);
@@ -264,7 +312,9 @@ test("decodeAndProjectMesh round-trips the largest sample mesh slice (real coord
   assert.equal(projected.buildings.length, n);
   // Every elevation is the positive measuredHeight (no NaN, no 0-collapse).
   assert.ok(
-    projected.buildings.every((b) => Number.isFinite(b.elevation) && b.elevation > 0),
+    projected.buildings.every(
+      (b) => Number.isFinite(b.elevation) && b.elevation > 0,
+    ),
     "all heights finite + positive",
   );
 });
@@ -319,7 +369,9 @@ test("buildPlateauBuildingTileLayer makes one SolidPolygonLayer per in-view, bud
     (rec.getElevation as (d: ProjectedBuilding) => number)(sample),
     sample.elevation,
   );
-  const color = (rec.getFillColor as (d: ProjectedBuilding) => number[])(sample);
+  const color = (rec.getFillColor as (d: ProjectedBuilding) => number[])(
+    sample,
+  );
   assert.ok(Array.isArray(color) && color.length === 4);
 });
 

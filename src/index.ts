@@ -90,11 +90,13 @@ export {
 
 export {
   meshesInView,
+  sortMeshesNearestFirst,
   pickLod,
   decodeAndProjectMesh,
   buildPlateauBuildingTileLayer,
   type LngLatBBox,
   type MeshEntry,
+  type SortMeshesNearestFirstOptions,
   type PlateauMeshIndex,
   type MeshLod,
   type MeshDraw,

@@ -94,6 +94,41 @@ export interface MeshEntry {
   height_max?: number;
 }
 
+/** Options for {@link sortMeshesNearestFirst}. */
+export interface SortMeshesNearestFirstOptions {
+  /** Current view bounds in lon/lat. The centre is used as the priority point. */
+  viewBoundsLngLat: LngLatBBox;
+}
+
+/**
+ * Return meshes sorted nearest-first relative to the current view centre.
+ *
+ * `pickLod` is intentionally input-order greedy, so hosts should call this
+ * after {@link meshesInView} and before {@link pickLod} to make the budget
+ * deterministic and user-centred across renderer implementations.
+ */
+export function sortMeshesNearestFirst(
+  _deps: Record<never, never>,
+  meshes: readonly MeshEntry[],
+  options: SortMeshesNearestFirstOptions,
+): MeshEntry[] {
+  const [minLon, minLat, maxLon, maxLat] = options.viewBoundsLngLat;
+  const viewLon = (minLon + maxLon) / 2;
+  const viewLat = (minLat + maxLat) / 2;
+
+  return meshes
+    .map((entry, index) => {
+      const [meshMinLon, meshMinLat, meshMaxLon, meshMaxLat] = entry.bbox;
+      const meshLon = (meshMinLon + meshMaxLon) / 2;
+      const meshLat = (meshMinLat + meshMaxLat) / 2;
+      const dLon = meshLon - viewLon;
+      const dLat = meshLat - viewLat;
+      return { entry, index, distanceSq: dLon * dLon + dLat * dLat };
+    })
+    .sort((a, b) => a.distanceSq - b.distanceSq || a.index - b.index)
+    .map((item) => item.entry);
+}
+
 /**
  * The Stage-2 PLATEAU mesh index (`packs/plateau/index.json`), mirrored LOCALLY.
  * Only the fields this package reads are required; provenance fields are carried
@@ -366,7 +401,10 @@ export async function decodeAndProjectMesh(
  * EPSG:6677 metres (see the module header) — the explicit mesh-culling composite
  * gives the same three guarantees and is the shipped mechanism.
  */
-export interface PlateauTileLayerCtors extends Pick<LayerCtors, "SolidPolygonLayer"> {
+export interface PlateauTileLayerCtors extends Pick<
+  LayerCtors,
+  "SolidPolygonLayer"
+> {
   /** Required: the extruded building layer ctor. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   SolidPolygonLayer: any;
