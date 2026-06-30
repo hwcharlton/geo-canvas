@@ -1,6 +1,6 @@
 /**
- * Stage-2 PLATEAU render-budget tier (ADR-021) — the headline geo-canvas
- * deliverable for the authoritative building layer.
+ * PLATEAU render-budget tier (ADR-021) — shared mesh planning, worker-safe
+ * decode/projection, and host-adaptable building geometry helpers.
  *
  * The full 23-ku is ~1.7M PLATEAU buildings, far over deck.gl's ~100k-polygon
  * per-frame ceiling. The pack producer (`geo-build`) therefore tiles by
@@ -21,10 +21,10 @@
  *      reusing the existing TopoJSON decode + {@link projectPack} +
  *      {@link flattenBuildings}. NO DOM / deck.gl imports, so the panel can run
  *      it inside a Web Worker.
- *   4. {@link buildPlateauBuildingTileLayer} — the deck.gl layer factory: one
- *      extruded `SolidPolygonLayer` per visible mesh (reusing the Stage-1
- *      extruded kind + {@link heightColor}), with `getTileData` INJECTED so the
- *      panel runs the decode+project of (3) in its Worker.
+ *   4. Host renderers adapt the planned draw set locally. The legacy
+ *      {@link buildPlateauBuildingTileLayer} helper remains available for simple
+ *      deck.gl consumers, but apps with their own cache and lifecycle policy
+ *      should call the planning helpers directly.
  *
  * ### Approach: explicit mesh-culling composite, NOT a deck.gl `TileLayer`
  *
@@ -455,6 +455,11 @@ export interface PlateauTileLayerOptions extends PickLodOptions {
  * mesh-culling composite). Skipped meshes are neither fetched nor drawn.
  *
  * `(deps, target, options?)`.
+ *
+ * @deprecated Prefer `meshesInView` → `sortMeshesNearestFirst` → `pickLod` in
+ * the host app, then adapt the resulting draws to the active renderer. This
+ * compatibility helper predates hosts that own cache limits, worker queues, and
+ * renderer-specific material callbacks.
  */
 export function buildPlateauBuildingTileLayer(
   deps: { ctors: PlateauTileLayerCtors },

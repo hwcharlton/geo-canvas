@@ -1,15 +1,15 @@
 /**
- * `@hwcharlton/geo-canvas` — browser-facing deck.gl layer builders for the
- * @hwcharlton geo-data ecosystem.
+ * `@hwcharlton/geo-canvas` — renderer-neutral projection, PLATEAU planning, and
+ * browser geometry helpers for the @hwcharlton geo-data ecosystem.
  *
- * Responsibility (ADR-005/008/011/017): take a decoded TopoJSON area pack from
- * `@hwcharlton/geo-client`, **pre-project** every coordinate to EPSG:6677
+ * Responsibility (ADR-005/008/011/017/021): take decoded geo-data packs from
+ * `@hwcharlton/geo-client`, **pre-project** coordinates to EPSG:6677
  * (JGD2011 Japan Plane Rectangular CS IX) metres using `@hwcharlton/geo-model`'s
- * projection (Y negated for north-up), and build the deck.gl layers to draw it
- * over a plain `OrthographicView` in projected-metre space — no geo basemap, no
- * `MapView`, no labels.
+ * projection, plan bounded PLATEAU mesh draw sets, and expose host-injected
+ * browser render helpers. The package owns the shared coordinate and geometry
+ * contracts; host apps own renderer lifecycles, workers, cache policy, and UI.
  *
- * Two deliberate seams keep this package pure and headless-testable:
+ * Three deliberate seams keep this package pure and headless-testable:
  *   1. The **projection** comes from geo-model (closed-form, deps-free) — there
  *      is **no proj4 dependency**. `makeProjector` wraps `toPlanar`; by default
  *      it negates Y so screen-up == north under an `OrthographicView`, and with
@@ -18,6 +18,8 @@
  *   2. The **deck.gl layer constructors are injected** (ADR-017) — `geo-canvas`
  *      never imports `@deck.gl/layers`, so deck.gl is a host-supplied peer, not
  *      a runtime dependency. Tests pass fake ctors that record their props.
+ *   3. The **Three.js path exports typed-array payloads**, not Three objects.
+ *      Hosts build/dispose `BufferGeometry`, materials, cameras, and renderers.
  *
  * Two render paths share this one coordinate space:
  *   - **2D** (Phase 1): admin/water → `GeoJsonLayer`, road → `PathLayer`, over an
@@ -37,17 +39,18 @@
  *   - {@link fitBoundsOrbit} — `(bounds, target, options?)` → `OrbitView` state.
  *   - {@link buildAttribution} — `(packs)` → de-duplicated attribution string.
  *
- * Stage-2 PLATEAU render-budget tier (ADR-021, the authoritative building
- * layer): per-mesh viewport culling + LOD/poly-budget + worker-safe decode +
- * an injected-ctor deck.gl building layer factory (see `./mesh-tiles`).
+ * PLATEAU render-budget tier (ADR-021): per-mesh viewport culling +
+ * nearest-first sorting + LOD/poly-budget + worker-safe decode +
+ * Three.js-ready typed-array geometry. The older injected-ctor deck.gl building
+ * factory remains exported for compatibility, but host apps with their own
+ * cache/lifecycle policy should plan draws explicitly and adapt them locally.
  *
  *   - {@link meshesInView} — `(deps, index, {viewBoundsLngLat})` → in-view meshes.
  *   - {@link pickLod} — `(deps, inViewMeshes, options?)` → per-mesh LOD + budget.
  *   - {@link decodeAndProjectMesh} — `(deps, packJson, options?)` → projected
  *     building records (worker-safe; no DOM/deck).
- *   - {@link buildPlateauBuildingTileLayer} — `(deps, target, options?)` → one
- *     extruded `SolidPolygonLayer` per visible mesh (explicit mesh-culling
- *     composite; `getTileData` injected).
+ *   - {@link buildThreeMeshGeometry} — `(deps, target, options?)` → typed-array
+ *     payload for host-owned Three.js `BufferGeometry`.
  */
 export {
   makeProjector,
