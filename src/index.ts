@@ -111,3 +111,14 @@ export {
   type PlateauTileLayerTarget,
   type PlateauTileLayerOptions,
 } from "./mesh-tiles.js";
+
+export {
+  buildThreeMeshGeometry,
+  defaultThreeHeightColor,
+  type BuildThreeMeshGeometryOptions,
+  type BuildThreeMeshGeometryTarget,
+  type ThreeGeometryBuildingRecord,
+  type ThreeGeometryCounts,
+  type ThreeGeometryRGBA,
+  type ThreeMeshGeometryPayload,
+} from "./three-geometry.js";
